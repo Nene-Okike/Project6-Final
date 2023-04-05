@@ -100,7 +100,164 @@ $  sudo mount /dev/webdata-vg/logs-lv /var/log
 20. Restore log files back into /var/log directory with this command
 
 $ sudo rsync -av /home/recovery/logs/. /var/log
+
  21. Update the /etc/fstab file otherise the confiruratiomn will disppear
+ 22. The UUID of the device will be used to update the /etc/fstab file;
+
+23. Run this `sudo blkid` and copy the UUID to use and update the /etc/fstab file
+
+
+![fstab](fstabupdated.png)
+
+
+24. Test the configuration with 1sudo mount -a and reload the daemon
+
+ $  sudo mount -a
+ $  sudo systemctl daemon-reload
+
+
+Launch a second RedHat Ec2 instance for a Database server
+ Configure the Database Server following the above steps above but changing the names.
+Instead of apps-lv create db-lv and mount it to /db directory instead of /var/www/html/.
+
+### Step 2
+Install wordpress on the webserver
+
+1. sudo yum update -y
+
+2. Install wget, Apache and it’s dependencies
+
+$  sudo yum -y install wget httpd php php-mysqlnd php-fpm php-json
+
+3. Start Apache with following commands
+
+sudo systemctl enable httpd
+sudo systemctl start httpd
+
+4. To install PHP and it’s depemdencies with the following commands
+
+
+$  sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+
+$   sudo yum install yum-utils http://rpms.remirepo.net/enterprise/remi-release-8.rpm
+
+$  sudo yum module list php
+
+$   sudo yum module reset php
+
+$   sudo yum module enable php:remi-7.4
+
+$   sudo yum install php php-opcache php-gd php-curl php-mysqlnd
+
+$sudo systemctl start php-fpm
+
+$  sudo systemctl enable php-fpm
+
+$ setsebool -P httpd_execmem 1
+
+5. Restart Apache with this command
+
+ $  sudo systemctl restart httpd
+
+6. Download wordpress and copy wordpress to var/www/html
+
+ $ mkdir wordpress && cd   wordpress
+
+ $ sudo wget http://wordpress.org/latest.tar.gz
+
+ $ sudo tar xzvf latest.tar.gz
+
+ $  sudo rm -rf latest.tar.gz
+
+ $ cp wordpress/wp-config-sample.php wordpress/wp-config.php
+
+ $  cp -R wordpress /var/www/html/
+
+7. Configure SELinux Policies
+
+ $  sudo chown -R apache:apache /var/www/html/wordpress
+
+ $ sudo chcon -t
+ httpd_sys_rw_content_t /var/www/html/wordpress -R
+
+ $  sudo setsebool -P httpd_can_network_connect=1
+
+  $ sudo setsebool -P httpd_can_network_connect_db 1
+
+  Step 4 — Install MySQL on your DB Server EC2
+
+$   sudo yum update
+
+$   sudo yum install mysql-server
+
+$  sudo systemctl restart mysqld
+
+$  sudo systemctl enable mysqld
+
+$ sudo systwmctl status mysqld
+
+
+Step 5 — Configure DB to work with WordPress
+
+   sudo mysql
+
+  CREATE DATABASE wordpress;
+
+CREATE USER `myuser`@`<Web-Server-Private-IP-Address>` IDENTIFIED BY 'wordpress';
+GRANT ALL ON wordpress.* TO 'wordpress'@'<Web-Server-Private-IP-Address>';
+FLUSH PRIVILEGES;
+
+SHOW DATABASES;
+
+exit
+
+Step 6 — Configure WordPress to connect to remote database.
+
+Open mysql port 3306 on DB server EC2
+
+vi into /etc/my.cnf file and modify the bind address by adding the following
+
+[mysqld]
+bind-adress=0.0.0.0
+
+step 7 In the webserver, Install MySQL client and test that you can connect from your Web Server to your DB server by using mysql-client
+
+$  sudo yum install mysql
+
+Step 8 vi into wp-config.php fike and edit content with the DB name, user name and user 
+password and ip address
+
+restart apache after the modification
+
+sudo systemctl restart httpd
+
+Step 9 Connect to the database from the webserver by running this command
+
+
+$  sudo mysql -u admin -p -h <DB-Server-Private-IP-address>
+
+
+![DBconnected](DBconnection.png)
+
+
+ and execute `SHOW DATABASES`; command to see a list of existing databases.
+
+ ![databases](wbdbconnected.png)
+
+Access from your browser the link to your WordPress http://<Web-Server-Public-IP-Address>/wordpress/
+
+![wordpress](wordpress.png)
+
+Installed and signed into wordpress
+
+![wordpressinstalled](wordpressinstalled.png)
+
+Project completed
+
+
+
+
+
 
 
 
